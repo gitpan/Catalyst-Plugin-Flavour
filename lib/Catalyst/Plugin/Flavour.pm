@@ -3,7 +3,7 @@ use strict;
 use base qw/Class::Accessor::Fast/;
 use NEXT;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 __PACKAGE__->mk_accessors(qw/flavour/);
 
@@ -16,53 +16,44 @@ Catalyst::Plugin::Flavour - Catalyst plugin for request flavours.
     use Catalyst qw/Flavour/;
     
     __PACKAGE__->config(
-        flavours        => [qw/html rss json/],
-        default_flavour => 'html',
+        flavour => {
+            flavours        => [qw/html rss json/],
+            default_flavour => 'html',
+        }
     );
 
 =head1 DESCRIPTION
 
 This plugin allows you to handle request flavours like Blosxom.
 
-When top level path token in request match your flavour, that is stored in $c->flavour and deleted $c->path while $c->prepare_action.
+When top level path token in request match your flavour, that is stored in $c->flavour and deleted $c->path while $c->prepare_path.
 So you can handle several flavours same controllers.
-
-=head1 NOTICE
-
-This plugin re-map $c->req->path in prepare_action chain, therefore there may be some plugin work incorrectly.
 
 =head1 EXTENDED METHODS
 
-=head2 prepare_action
+=head2 prepare_path
 
 =cut
 
-sub prepare_action {
+sub prepare_path {
     my $c = shift;
+    $c->NEXT::prepare_path(@_);
 
-    my $path_store = $c->req->path;
-    my $swap       = 0;
+    my $path = $c->req->uri->path;
+    my ($flavour) = $path =~ m!^/([^/]*)!;
 
-    if ( my $path = $c->req->path ) {
+    my $flavours
+        = { map { $_ => 1 } @{ $c->config->{flavour}->{flavours} || [] } };
 
-        my ($flavour) = $path =~ m!^([^/]+)!;
+    if ( $flavour and $flavours->{$flavour} ) {
+        $path =~ s!^/$flavour/?!!;
+        $c->req->uri->path("$path/");
+        $c->req->path("$path/");
 
-        for ( @{ $c->config->{flavours} } ) {
-            $swap++ if $flavour eq $_;
-        }
-
-        if ($swap) {
-            $c->flavour($flavour);
-
-            $path =~ s!^$flavour/+!!;
-            $c->req->path($path);
-        }
+        $c->flavour($flavour);
     }
-
-    $c->NEXT::prepare_action(@_);
-
-    $c->req->path($path_store) if $swap;
-    $c->flavour( $c->config->{default_flavour} || 'html' ) unless $c->flavour;
+    $c->flavour( $c->config->{flavour}->{default_flavour} || 'html' )
+        unless $c->flavour;
 
     $c;
 }

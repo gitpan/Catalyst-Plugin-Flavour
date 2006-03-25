@@ -1,4 +1,8 @@
 Revision history for Perl module Catalyst::Plugin::Flavour
 
+0.02 2006-03-26T08:27:53+09:00
+     - simplified
+     - changed config namecpace
+
 0.01 2005-12-27T00:13:42+09:00
-    - original version;
+     - original version;

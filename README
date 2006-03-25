@@ -3,25 +3,23 @@ NAME
 
 SYNOPSIS
         use Catalyst qw/Flavour/;
-    
-        __PACKAGE__->config(
-            flavours        => [qw/html rss json/],
-            default_flavour => 'html',
+        
+    __PACKAGE__->config(
+            flavour => {
+                flavours        => [qw/html rss json/],
+                default_flavour => 'html',
+            }
         );
 
 DESCRIPTION
     This plugin allows you to handle request flavours like Blosxom.
 
     When top level path token in request match your flavour, that is stored
-    in $c->flavour and deleted $c->path while $c->prepare_action. So you can
+    in $c->flavour and deleted $c->path while $c->prepare_path. So you can
     handle several flavours same controllers.
 
-NOTICE
-    This plugin re-map $c->req->path in prepare_action chain, therefore
-    there may be some plugin work incorrectly.
-
 EXTENDED METHODS
-  prepare_action
+  prepare_path
 SEE ALSO
     Catalyst
 

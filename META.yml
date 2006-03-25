@@ -1,8 +1,8 @@
 ---
 name: Catalyst-Plugin-Flavour
-version: 0.01
+version: 0.02
 author:
-  - Daisuke Murase E<lt>typester@cpan.orgE<gt>
+  - 'Daisuke Murase E<lt>typester@cpan.orgE<gt>'
 abstract: Catalyst plugin for request flavours.
 license: perl
 resources:
@@ -12,5 +12,5 @@ requires:
 provides:
   Catalyst::Plugin::Flavour:
     file: lib/Catalyst/Plugin/Flavour.pm
-    version: 0.01
+    version: 0.02
 generated_by: Module::Build version 0.2703
