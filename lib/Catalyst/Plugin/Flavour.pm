@@ -3,9 +3,23 @@ use strict;
 use base qw/Class::Accessor::Fast/;
 use NEXT;
 
-our $VERSION = '0.02';
+use Catalyst::Plugin::Flavour::Data;
+
+our $VERSION = '0.029_01';
 
 __PACKAGE__->mk_accessors(qw/flavour/);
+
+# add accessors to Catalyst::Request
+{
+    package Catalyst::Request;
+    use base qw/Class::Accessor::Fast/;
+
+    __PACKAGE__->mk_accessors(qw/real_uri/);
+    *rpath = \&real_path;
+    *ruri  = \&real_uri;
+
+    sub real_path { shift->real_uri->path };
+}
 
 =head1 NAME
 
@@ -39,21 +53,59 @@ sub prepare_path {
     my $c = shift;
     $c->NEXT::prepare_path(@_);
 
-    my $path = $c->req->uri->path;
-    my ($flavour) = $path =~ m!^/([^/]*)!;
+    $c->flavour( Catalyst::Plugin::Flavour::Data->new );
+    $c->req->real_uri( $c->req->uri->clone );
 
-    my $flavours
-        = { map { $_ => 1 } @{ $c->config->{flavour}->{flavours} || [] } };
+    my @path = split m!/+!, $c->req->path;
+    shift @path unless @path and  $path[0];
 
-    if ( $flavour and $flavours->{$flavour} ) {
-        $path =~ s!^/$flavour/?!!;
-        $c->req->uri->path("$path/");
-        $c->req->path("$path/");
+    my $config = $c->config->{flavour};
 
-        $c->flavour($flavour);
+    if ($config->{flavours} or $config->{flavours_except}) {
+        my $flavours = {
+            map { $_ => 1 }
+                @{ $config->{flavours} || $config->{flavours_except} || [] }
+        };
+
+        my $flavour = $path[0];
+        if ($config->{flavours} && $flavours->{$flavour}
+                or $config->{flavours_except} && !$flavours->{$flavour}) {
+            shift @path;
+            $c->flavour->flavour($flavour);
+        }
+        $c->flavour->flavour( $c->config->{flavour}->{default_flavour} || 'html' )
+            unless $c->flavour;
+
     }
-    $c->flavour( $c->config->{flavour}->{default_flavour} || 'html' )
-        unless $c->flavour;
+    elsif ( my ( $fn, $flavour ) = $path[-1] =~ /(.*)\.(.*?)$/ ) {
+
+        $c->flavour->flavour($flavour);
+        if ( $fn eq 'index' ) {
+            pop @path;
+        }
+        else {
+            $path[-1] =~ s/\.$flavour$//;
+        }
+    }
+
+    unless ( defined $config->{date_flavour} and !$config->{date_flavour} ) {
+        for my $param (qw/year month day/) {
+            last unless $path[0];
+
+            if (   $param eq 'year' && $path[0] =~ /^\d{4}$/
+                or $path[0] =~ /^\d?\d$/ )
+            {
+                $c->flavour->$param( shift @path );
+            }
+            else {
+                last;
+            }
+        }
+    }
+
+    my $path = '/' . join '/', @path;
+    $c->req->uri->path( $path );
+    $c->req->path( $path );
 
     $c;
 }
