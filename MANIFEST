@@ -4,8 +4,10 @@ lib/Catalyst/Plugin/Flavour.pm
 lib/Catalyst/Plugin/Flavour/Data.pm
 LICENSE
 Makefile.PL
-MANIFEST
+MANIFEST			This list of files
 META.yml
 README
 t/001_load.t
+t/pod-coverage.t
+t/pod.t
 Todo
